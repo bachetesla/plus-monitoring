@@ -1,0 +1,67 @@
+##################################################
+# Plus Monitoring Gitlab-ci
+#
+# Author: Snapp! Grocery SRE <sre AT snappgrocery.com>
+# Coding: utf-8
+#
+##################################################
+image: registry.zooket.ir/devops-images/docker:latest
+services:
+  - docker:18.09.7-dind
+
+stages:
+  - notify
+  - build
+  - deploy
+
+variables:
+  teams_webhook: "https://snappexpressoutlook.webhook.office.com/webhookb2/f687d96f-82d0-40d8-9913-0bf1bd42224b@97ea615a-b543-4b32-b19e-9579d0271613/IncomingWebhook/7136549dd6f346128f8e1f8da937244a/81d2b81a-cbfb-4804-8489-023932fb6349"
+
+##################################################
+# Deploy Snapp! Express Kubernetes Production
+# Jobs: Notify, Build, Deploy
+##################################################
+notify_changes:
+  stage: notify
+  image: registry.zooket.ir/devops-images/docker:gitcurl
+  tags:
+    - build
+    - kubernetes
+    - dev
+  script:
+    - 'curl -X POST -H "Content-Type: application/json" -d "{\"text\": \"$GITLAB_USER_NAME has new commit(s) on master branch of $CI_PROJECT_NAME :\n$(git log --oneline --decorate=short --no-merges $CI_COMMIT_SHA...$CI_COMMIT_BEFORE_SHA)\"}" $teams_webhook'
+  variables:
+    DOCKER_HOST: tcp://localhost:2375
+  only:
+    - dev
+  allow_failure: true
+
+build_dev:
+  stage: build
+  tags:
+    - build
+    - dev
+    - kubernetes
+  script:
+    - sleep 10s;
+    - echo  $CI_COMMIT_SHA
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.zooket.ir
+    - docker build -t $CONTAINER_IMAGE -f deployment/Dockerfile .
+    - docker push $CONTAINER_IMAGE
+  variables:
+    CONTAINER_IMAGE: registry.zooket.ir/snappexpress/sre/plus-monitoring:$CI_COMMIT_SHA
+
+  only:
+    - dev
+
+deploy_dev:
+  stage: deploy
+  image: registry.zooket.ir/devops-images/alpine/helm:3.6.3
+  tags:
+    - deploy
+    - dev
+    - kubernetes
+  script:
+    - helm upgrade my-plus-monitoring ./deployment/my-plus-monitoring -i -n plus-monitoring --set-string image.tag=$CI_COMMIT_SHA
+  only:
+    - dev

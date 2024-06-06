@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: general-healthcheck-conf
+data:
+  conf.yml: |-
+    version: "1"
+    types:
+      rabbitmq:
+      elasticsearch:
+      mysql:
+      nginx:
+      redis:
+
+    services:
+      dev_core:
+        check_interval: 30
+        fqdn: 192.168.51.20
+        port: 3306
+        type: mysql
+        authentication:
+          username: dev_general_healthcheck_usr
+          password: Health_check_GG_123_mh
+          db: zoodfood_db
+
+      dev_general_services:
+        check_interval: 30
+        fqdn: 192.168.51.21
+        port: 3306
+        type: mysql
+        authentication:
+          username: dev_general_healthcheck_usr
+          password: 38V3d4/tUiDS5peh_al
+          db: snapp_pro
+
+      dev_rabbitmq_chatbot:
+        check_interval: 30
+        fqdn: chat-bot-rabbitmq.rabbitmq.svc.cluster.local
+        port: 5672
+        type: rabbitmq
+        authentication:
+          username: user
+          password: Ph4Vg2DLAPaEyMyf

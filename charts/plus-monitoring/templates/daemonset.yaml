@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "my-general-healthcheck.fullname" . }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "my-general-healthcheck.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "my-general-healthcheck.name" . }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      containers:
+        - name: general-healthcheck
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          volumeMounts:
+            - name: general-healthcheck-conf
+              mountPath: /config  # Mount the ConfigMap to /config
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          imagePullPolicy: Always
+      volumes:
+        - name: general-healthcheck-conf
+          configMap:
+            name: general-healthcheck-conf
